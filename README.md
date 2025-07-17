@@ -1,9 +1,10 @@
 ### TripleA
 
-Created by Luis Mesquita based on:
-# Script created by Bart Reardon, June 11, 2025
-# Augmented by Anthony Darlow (CantScript), June 13, 2025
-# Script provided AS IS and without warranty of any kind
+## Created by Luis Mesquita based on:
+Script created by Bart Reardon, June 11, 2025
+Augmented by Anthony Darlow (CantScript), June 13, 2025
+Script provided AS IS and without warranty of any kind
+
 Automation of creating and validing tokens when working with the AxM API based on the [script](https://github.com/bartreardon/macscripts/blob/master/create_client_assertion.sh) provided by [Bart Reardon](https://github.com/bartreardon) and also the script created by based on Anthony Darlow's (CantScript) https://github.com/cantscript/AxM_API
 
 This utility can be used as a script or as a stand alone utility.
