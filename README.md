@@ -32,17 +32,10 @@ Above logic is embedded in the main TripleA Script.
 
 -----
 ### Configuring the Automation
-First things first, if you haven't already, go and read [Barts blog](https://bartreardon.github.io/2025/06/11/using-the-new-api-for-apple-business-school-manager.html) so that you know how to configure ASM. From ASM, you'll need
+First things first, if you haven't already, go and read [Barts blog](https://bartreardon.github.io/2025/06/11/using-the-new-api-for-apple-business-school-manager.html) so that you know how to configure AxM. From AxM, you'll need:
 * `The Private Key File` which will end in .pem <br>
 * `Client ID` <br>
 * `Key ID`
-
-
-*** USING THE STAND ALONE APP ***
-* Download the App
-* The App can run from whatever location. It does not have a Developer ID, it is not Signed or Notarized.
-
-
 
 *** USING THE SCRIPT ***
 
@@ -57,7 +50,7 @@ First things first, if you haven't already, go and read [Barts blog](https://bar
 * Take your `Private Key File` and move it into the `AxMCert` folder or any other folder as you will be able to select the file from within the utility.
 
 **Step 3** <br>
-* Run the Script/App <br>
+* Run the Script <br>
 * You will be prompted with a "First Use Screen" with a couple of instructions. If you want, you can check the box for the prompt not to be presented again.
 
 **Step 4** <br>
@@ -84,4 +77,3 @@ If you haven't already seen, here are the [Apple Documents for the [ASM Endpoint
 ### Quick Notes
 * If you want to reset the configuration, just delete the config file that is stored ~/Library/Preferences/com.w4a.triplea.plist.
 * If you run the script, a log file is also created in the Logs Folder.
-* If you run the App, the log file will be in /Library/Logs folder.

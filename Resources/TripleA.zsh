@@ -8,13 +8,13 @@
 
 #################################################################################
 # Get the directory where the script is located
-scriptDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+scriptDir="$(cd "$(dirname "$0")" && pwd)"
 # Defines the path for the log file. It will be stored in the same folder as the script, so it does not prompt for admin Credentials
-scriptLog="/Library/Logs/com.w4all.triplea.log" 
+scriptLog="$scriptDir/Logs/com.w4all.triplea.log" 
 # Defines the path to the Client Assertion file relative to the script's directory
-assertLocation="$scriptDir/../Resources/Tokens/client_assertion_format.txt"
+assertLocation="$scriptDir/Tokens/client_assertion_format.txt"
 # Defines the path to the Access Token file relative to the script's directory
-aTokenLocation="$scriptDir/../Resources/Tokens/access_token_format.txt"
+aTokenLocation="$scriptDir/Tokens/access_token_format.txt"
 # Capturing the Logged in User
 loggedInUser=$( stat -f%Su /dev/console)
 # Finding the Full Name of the logged in User
@@ -65,11 +65,18 @@ function create_client_assertion() {
   ###Discover Locations
 
   # Define the path to the file relative to the script's directory
-  pKeyLocation="${private_key_path}"
+  # Handle encoded paths from macOS defaults system
+  if [[ "$private_key_path" == *"\\"* ]]; then
+    # Path contains escape sequences from defaults, decode them using printf
+    pKeyLocation=$(printf "$private_key_path" 2>/dev/null || echo "$private_key_path")
+  else
+    # Normal path, use as-is
+    pKeyLocation="${private_key_path}"
+  fi
 
   # Check to see if we have all our stuff
   if [[ ! -e "$pKeyLocation" ]]; then
-    echo "- Private key $private_key_file can't be found\n"
+    echo "- Private key $pKeyLocation can't be found\n"
     exit 1
   fi
   if [[ -z $client_id ]] || [[ -z $key_id ]]; then
@@ -144,7 +151,7 @@ function create_client_assertion() {
   jwt="${signing_input}.${rs_b64url}"
 
   # Write to file using tee and heredoc
-  tee $scriptDir/../Resources/Tokens/client_assertion_format.txt > /dev/null <<EOF
+  tee $scriptDir/Tokens/client_assertion_format.txt > /dev/null <<EOF
 Token: $jwt
 Expire: $(date -r $exp)
 EOF
@@ -824,7 +831,7 @@ function getSerialNumbersToAction() {
 # SerialNumber,Status,Model
 # It shows a message with the number of assigned and unassigned devices
 function listOrganizationDevices() {
-	response=$(curl -s "${url}/orgDevices" -H "Authorization: Bearer ${accessToken}")
+	response=$(curl -s "${url}/orgDevices?limit=1000" -H "Authorization: Bearer ${accessToken}")
 	assignedCount=$(echo "$response" | jq '[.data[] | select(.attributes.status == "ASSIGNED")] | length ')
 	unassignedCount=$(echo "$response" | jq '[.data[] | select(.attributes.status == "UNASSIGNED")] | length ')
 	
@@ -838,14 +845,14 @@ function listOrganizationDevices() {
  UNASSIGNED DEVICES:\n
  $(echo "$response" | jq -r '[.data[] | select(.attributes.status == "UNASSIGNED")] | .[] | " - SerialNumber: \(.id)\n- Model: \(.attributes.deviceModel)\n---"')"
   fi  
-	fileName="A file called listOrgDevices.csv has been created on your Desktop"
+	fileName="A file called listOrgDevices.csv has been created in the Reports Folder"
 
-	echo "$response" | jq -r '.data[] | [.id, .attributes.status, .attributes.deviceModel] | @csv' > "$homeFolder/Desktop/listOrgDevices.csv"
+	echo "$response" | jq -r '.data[] | [.id, .attributes.status, .attributes.deviceModel] | @csv' > "$scriptDir/Reports/listOrgDevices.csv"
 
   if [[ $? == 0 ]]; then
-    echo "- A file called listOrgDevices.csv has been created on the Desktop/\n"
+    echo "- A file called listOrgDevices.csv has been created in the Reports Folder/\n"
   else
-    echo "- An error occured when creating the file listOrgDevices.csv on the Desktop\n"
+    echo "- An error occured when creating the file listOrgDevices.csv in the Reports Folder\n"
   fi
 	
 }
@@ -864,7 +871,7 @@ function listOrganizationDevices() {
 function createStatusDevicesCSV() {
 
 	deviceStatus="$1"
-	response=$(curl -s "${url}/orgDevices" -H "Authorization: Bearer ${accessToken}")
+	response=$(curl -s "${url}/orgDevices?limit=1000" -H "Authorization: Bearer ${accessToken}")
 	assignedCount=$(echo "$response" | jq '[.data[] | select(.attributes.status == "ASSIGNED")] | length ')
 	unassignedCount=$(echo "$response" | jq '[.data[] | select(.attributes.status == "UNASSIGNED")] | length ')	
 	totalCount=$(echo "$response" | jq '.data | length')
@@ -901,14 +908,14 @@ function createStatusDevicesCSV() {
  $(echo "$response" | jq -r '[.data[] | select(.attributes.status == "UNASSIGNED") | select(.attributes.productFamily | contains("iPad"))] | .[] | "- SerialNumber: \(.id)\n---"')"
       fi
 
-      fileName="A file called listUnassignedOrgDevices.csv has been created on the Desktop"
+      fileName="A file called listUnassignedOrgDevices.csv has been created in the Reports Folder"
 
-		  echo "$response" | jq -r '.data[] | select(.attributes.status == "UNASSIGNED") | [.id, .attributes.deviceModel] | @csv' > "$homeFolder/Desktop/listUnassignedOrgDevices.csv"
+		  echo "$response" | jq -r '.data[] | select(.attributes.status == "UNASSIGNED") | [.id, .attributes.deviceModel] | @csv' > "$scriptDir/Reports/listUnassignedOrgDevices.csv"
       
       if [[ $? == 0 ]]; then
-        echo "- A file called listUnassignedOrgDevices.csv has been created on the Desktop\n"
+        echo "- A file called listUnassignedOrgDevices.csv has been created in the Reports Folder\n"
       else
-        echo "- An error occured when creating the listUnassignedOrgDevices.csv on the Desktop\n"
+        echo "- An error occured when creating the listUnassignedOrgDevices.csv in the Reports Folder\n"
       fi
 
     fi
@@ -943,7 +950,7 @@ function createStatusDevicesCSV() {
 
 		  fileName="A file called listAssignedOrgDevices.csv has been created in $scriptDir/Reports/"
   
-		  echo "$response" | jq -r '.data[] | select(.attributes.status == "ASSIGNED") | [.id, .attributes.deviceModel] | @csv' > "$scriptDir/../Resources/Reports/listAssignedOrgDevices.csv"
+		  echo "$response" | jq -r '.data[] | select(.attributes.status == "ASSIGNED") | [.id, .attributes.deviceModel] | @csv' > "$scriptDir/Reports/listAssignedOrgDevices.csv"
     
       if [[ $? == 0 ]]; then
         echo "- A file called listAssignedOrgDevices.csv has been created in $scriptDir/Reports/\n"
@@ -963,22 +970,22 @@ function createStatusDevicesCSV() {
 # ServerName,ServerId
 # The CSV file is created in the Reports folder in the script directory
 function listMDMServers() {
-	response=$(curl -s "${url}/mdmServers" -H "Authorization: Bearer ${accessToken}")
+	response=$(curl -s "${url}/mdmServers?limit=1000" -H "Authorization: Bearer ${accessToken}")
 	
   serverCount=$(echo "$response" | jq '[.data[] | select(.attributes.serverType == "MDM")] | length ')
 	
 	title="The instance has $serverCount MDM Servers"
 	message=$(echo "$response" | jq -r '.data[] | select(.attributes.serverType == "MDM") | "
   - \(.attributes.serverName)" ')
-	fileName="A file called listMDMServers.csv has been created on the Desktop"
+	fileName="A file called listMDMServers.csv has been created in the Reports Folder"
 	
 
-  echo "$response" | jq -r '.data[] | select(.attributes.serverType == "MDM") | [.id, .attributes.serverName ] | @csv' > "$homeFolder/Desktop/listMDMServers.csv"
+  echo "$response" | jq -r '.data[] | select(.attributes.serverType == "MDM") | [.id, .attributes.serverName ] | @csv' > "$scriptDir/Reports/listMDMServers.csv"
 
   if [[ $? == 0 ]]; then
-    echo "- A file called listMDMServers.csv has been created on the Desktop\n"
+    echo "- A file called listMDMServers.csv has been created in the Reports Folder\n"
   else
-    echo "- An error occured when creating the file listMDMServers.csv on the Desktop\n"
+    echo "- An error occured when creating the file listMDMServers.csv in the Reports Folder\n"
   fi
 }
 
@@ -991,13 +998,13 @@ function listMDMServers() {
 # It shows an AppleScript dialog with the names and returns the chosen name and ID
 # The chosen name and ID are stored in the variables chosenName and chosenId
 function getMDMServerId() {
-	response=$(curl -s "${url}/mdmServers" -H "Authorization: Bearer ${accessToken}")
-	echo "$response" | jq -r '.data[] | select(.attributes.serverType == "MDM") | [.id, .attributes.serverName] | @csv' > "$homeFolder/Desktop/listMDMServers.csv"
+	response=$(curl -s "${url}/mdmServers?limit=1000" -H "Authorization: Bearer ${accessToken}")
+	echo "$response" | jq -r '.data[] | select(.attributes.serverType == "MDM") | [.id, .attributes.serverName] | @csv' > "$scriptDir/Reports/listMDMServers.csv"
 	
   if [[ $? == 0 ]]; then
-    echo "- A file called listMDMServers.csv has been created on the Desktop"
+    echo "- A file called listMDMServers.csv has been created in the Reports Folder"
   else
-    echo "- An error occured when creating the file listMDMServers.csv on the Desktop"
+    echo "- An error occured when creating the file listMDMServers.csv in the Reports Folder"
   fi
 
   mdmNames=()
@@ -1008,7 +1015,7 @@ function getMDMServerId() {
 	while IFS=',' read -r id name; do
 		mdmNames+=($name)
 		mdmIds+=($id)
-	done < "$homeFolder/Desktop/listMDMServers.csv"
+	done < "$scriptDir/Reports/listMDMServers.csv"
 	
 
   # Show MDM Selection dialog with names
@@ -1057,7 +1064,7 @@ function listDevicesforMDMService() {
   getMDMServerId
   fileName=""
   # Get the list of devices for the chosen MDM Server
-  deviceList=$(curl -s "${url}/mdmServers/${chosenId}/relationships/devices" -H "Authorization: Bearer ${accessToken}")
+  deviceList=$(curl -s "${url}/mdmServers/${chosenId}/relationships/devices?limit=1000" -H "Authorization: Bearer ${accessToken}")
 
   devices=$(echo "$deviceList" | jq -r '.data[] | .id' 2> /dev/null)
   title="Devices for MDM Server: ${chosenName}"
@@ -1068,14 +1075,14 @@ function listDevicesforMDMService() {
 	else
     message=$(echo "$deviceList" | jq -r '.data[] | (.id) as $serialNumber | "
  - \($serialNumber)\n---"')
-    fileName="A file called listDevicesfor_${chosenName}.csv has been created on the Desktop"
+    fileName="A file called listDevicesfor_${chosenName}.csv has been created in the Reports Folder"
 	
-    echo "$deviceList" | jq -r '.data[] | [.id] | @csv' > "$homeFolder/Desktop/listDevicesfor_${chosenName}.csv"
+    echo "$deviceList" | jq -r '.data[] | [.id] | @csv' > "$scriptDir/Reports/listDevicesfor_${chosenName}.csv"
 
     if [[ $? == 0 ]]; then
-      echo "- A file called listDevicesfor_${chosenName}.csv has been created on the Desktop"
+      echo "- A file called listDevicesfor_${chosenName}.csv has been created in the Reports Folder"
     else
-      echo "- An error occured when creating the file listDevicesfor_${chosenName}.csv on the Desktop\n"
+      echo "- An error occured when creating the file listDevicesfor_${chosenName}.csv in the Reports Folder\n"
     fi
 
 
@@ -1231,14 +1238,14 @@ function assignAction() {
 
 		sed -e "s/CHOSEN_ID_PLACEHOLDER/${chosenId}/g" \
 		-e "s/SERIAL_NUMBER_PLACEHOLDER/${serialNumber}/g" \
-		payload_template.json > "$scriptDir/../Resources/temp_payload.json"
+		payload_template.json > "$scriptDir/temp_payload.json"
 	
   echo "- Template file replaced with correct value: ${serialNumber}\n"
 	
 	curl -s -X POST "${url}/orgDeviceActivities" \
 	-H "Authorization: Bearer ${accessToken}" \
 	-H "Content-Type: application/json" \
-	-d @"$scriptDir/../Resources/temp_payload.json"
+	-d @"$scriptDir/temp_payload.json"
 			
 }
 
@@ -1283,7 +1290,7 @@ function actionOnDevices() {
 				continue
 			fi
 		# Clean up
-			rm -f "$scriptDir/../Resources/temp_payload.json"
+			rm -f "$scriptDir/temp_payload.json"
 			
 		done < "$serialNumbersPath"
 
@@ -1312,7 +1319,7 @@ function actionOnDevices() {
         echo "- The user choose not to add more Serial Numbers\n"
       esac
     # Clean up
-		rm -f "$scriptDir/../Resources/temp_payload.json"
+		rm -f "$scriptDir/temp_payload.json"
     done
     ;;
     *)
